@@ -180,36 +180,9 @@ def fit(x, y):
 def avgDev(actual, fit):
     return np.mean(np.abs(actual - fit))   
 
-# def readScale(img, scale): # dont actually need this, was just used to determine the scale 
-#     '''
-#     img: image with scale bar inside 
-#     scale: how long the scale bar is in micrometers 
-#     conversion: length per pixel
-#     * assumes scale bar is red 
-#     '''
-#     lower_red = np.array([0, 0, 100])
-#     upper_red = np.array([100, 100, 255])
-#     red_mask = cv2.inRange(img, lower_red, upper_red)
-#     edges = cv2.Canny(red_mask, 50, 150)
-#     lines = cv2.HoughLinesP(edges, 1, np.pi / 180, threshold=50, minLineLength=100, maxLineGap=10)
-    
-#     # Initialize variables to store the length of the longest line
-#     max_length = 0
-
-#     # Loop through the detected lines and find the longest horizontal line
-#     for line in lines:
-#         x1, y1, x2, y2 = line[0]
-#         length = abs(x2 - x1)
-#         if length > max_length:
-#             max_length = length
-#     conversion = scale / max_length        
-#     return conversion
-
 #=============================MAIN========================================
-scale = 5.88 
-# sourcePath should be the big folder that you want the little folders to save in
+scale = 5.88 git 
 sourcePath = '//wp-oft-nas/HiWis/GM_Dawn_Zheng/Arvid/Magnesium Walls for Dawn/'
-# inDir is the folder of images inside your sourcePath
 inDir = sourcePath + 'Post Processed'
 cntNames = []
 allRoughness = []
