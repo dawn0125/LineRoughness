@@ -181,7 +181,7 @@ def avgDev(actual, fit):
     return np.mean(np.abs(actual - fit))   
 
 #=============================MAIN========================================
-scale = 5.88 git 
+scale = 5.88 
 sourcePath = '//wp-oft-nas/HiWis/GM_Dawn_Zheng/Arvid/Magnesium Walls for Dawn/'
 inDir = sourcePath + 'Post Processed'
 cntNames = []
