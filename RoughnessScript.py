@@ -278,9 +278,6 @@ for sample in os.listdir(inDir):
                     # append to dataset 
                     allRoughness.append(str(roughness).replace('.', ','))
                     
-                    # append contour name to indices if everything else works 
-                    # cntNames.append(ROI)
-                    
                     # show/save roughness image
                     if saveSummaries == True:
                         cv.imwrite(sumimgDir + '/Contour ' + ROI, roughness_img)
@@ -289,6 +286,7 @@ for sample in os.listdir(inDir):
                     plt.show()
                 except: 
                     print('ISSUE WITH ' + ROI)
+                    
         data.append(allRoughness)
 
 # save to excel 
