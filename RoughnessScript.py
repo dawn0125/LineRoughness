@@ -99,11 +99,6 @@ def findHeights(cnts, cntsOI):
         cnt_heights.append(h) # add heights to cnt heights 
     return cnt_heights
 
-def findcntOI(img, morph):
-    cnts = findContour(img, morph)
-    cntsOI = np.argsort(findAreas(cnts))[-5:-2] 
-    return cntsOI
-
 def checkContour(cnts, cntsOI, expected):
     '''
     every actual height must be at least 90% the expected height 
@@ -181,18 +176,21 @@ def avgDev(actual, fit):
     return np.mean(np.abs(actual - fit))   
 
 #=============================MAIN========================================
-scale = 5.88 git 
+scale = 5.88 
 sourcePath = '//wp-oft-nas/HiWis/GM_Dawn_Zheng/Arvid/Magnesium Walls for Dawn/'
 inDir = sourcePath + 'Post Processed'
-cntNames = []
-allRoughness = []
+loi = []
+data = []
 acceptedFileTypes = ["png"] # add more as needed
 saveSummaries = True
+lower_bin = -5
+upper_bin = -2
 
 # for every picture in your directory, to extract the contours for analysis 
 for sample in os.listdir(inDir): 
     if( '.' in sample and sample.split('.')[-1] in acceptedFileTypes):
         f = inDir + '/' + sample
+        loi.append(sample)
         print('Processing ' + sample)
         sampleNumber = sample[:-4]
         
@@ -217,13 +215,13 @@ for sample in os.listdir(inDir):
         
         # sorts areas from smallest to largest
         # extracts 3rd, 4th, and 5th largest contours
-        cntsOI = np.argsort(findAreas(cnts))[-5:-2] 
+        cntsOI = np.argsort(findAreas(cnts))[lower_bin:upper_bin] 
        
         
         # checking contours, excluding morphology if contours are too short
         if checkContour(cnts, cntsOI, img_height) == False:
             cnts = findContour(img, False)
-            cntsOI = np.argsort(findAreas(cnts))[-5:-2] 
+            cntsOI = np.argsort(findAreas(cnts))[lower_bin:upper_bin] 
         
         
         # extracting contours
@@ -251,6 +249,7 @@ for sample in os.listdir(inDir):
         
         
         # begin roughness script   
+        allRoughness = []
         for ROI in os.listdir(outDir):
             if( '.' in ROI and ROI.split('.')[-1] in acceptedFileTypes):
                 try: 
@@ -280,7 +279,7 @@ for sample in os.listdir(inDir):
                     allRoughness.append(str(roughness).replace('.', ','))
                     
                     # append contour name to indices if everything else works 
-                    cntNames.append(ROI)
+                    # cntNames.append(ROI)
                     
                     # show/save roughness image
                     if saveSummaries == True:
@@ -290,8 +289,9 @@ for sample in os.listdir(inDir):
                     plt.show()
                 except: 
                     print('ISSUE WITH ' + ROI)
+        data.append(allRoughness)
 
 # save to excel 
-df = pd.DataFrame(data=list(allRoughness), columns=['Roughness'], index=cntNames)
+df = pd.DataFrame(data=list(data), columns=['0', '1', '2'], index = loi)
 df.to_excel(sourcePath + 'Roughness.xlsx')
 print('All Done!')
