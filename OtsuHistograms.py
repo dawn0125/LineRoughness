@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Dec  5 10:40:53 2023
+This program takes in a folder of images and displays the image, a threshold image based on 
+Otsu Binarization, and a histogram of colour values in the image 
 
-@author: D.Zheng
+To use: Just change image_folder to the directory where your images are stored 
 """
 import cv2 as cv 
 import os 
-import numpy as np
 import matplotlib.pyplot as plt
 
-# main
 image_folder = '//wp-oft-nas/HiWis/GM_Dawn_Zheng/Arvid/Magnesium Walls for Dawn/otsutest'
 loi = os.listdir(image_folder)
 acceptedFileTypes = ['png'] # add more as needed
@@ -32,6 +31,7 @@ for i in loi:
         plt.show()
         
         plt.hist(img.ravel(),256)
-        plt.title(i + ' Histogram'), plt.yticks([])
+        plt.title(i + ' Histogram')
         plt.grid()
         plt.show()
+        
