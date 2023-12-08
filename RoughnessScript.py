@@ -44,6 +44,7 @@ def threshManual(img, lower, upper):
     '''
     thresh according to bins added manually 
     '''
+    img = ndimage.gaussian_filter(img, 2, mode='nearest')
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     ret, thresh = cv.threshold(gray, lower, upper, cv.THRESH_BINARY)
     return thresh
@@ -55,34 +56,54 @@ def threshOtsu(img):
     thresh: black and white image array 
 
     '''
+    img = ndimage.gaussian_filter(img, 2, mode='nearest')
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     ret, thresh = cv.threshold(gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
     return thresh
 
-def findContour(img, morph, manual):
+def morph(img):
     '''
-    28/30 success rate if implemented correctly
-    img: image array
-    morph: True or False, indicates whether morphology closing is used 
-    contours: image array of contours 
+    perform morphological operations to remove noise
     '''
-    if morph == True:
-        # morphology closed means dilating foreground pixels and then eroding them
-        # kernel determines the thickness of the dilation/erosion 
-        kernel = cv.getStructuringElement(cv.MORPH_RECT,(6,6))
-        closed = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
-        blurred = ndimage.gaussian_filter(closed, 2, mode='nearest')
+    kernel = cv.getStructuringElement(cv.MORPH_RECT,(6,6))
+    closed = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
+    
+    return closed 
+
+def findContour(img):
+    if np.ndim(img) != 2:
+        img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    contours, hierarchy = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+    
+    return contours 
+
+
+    
+    
+# def findContour(img, morph, manual):
+#     '''
+#     28/30 success rate if implemented correctly
+#     img: image array
+#     morph: True or False, indicates whether morphology closing is used 
+#     contours: image array of contours 
+#     '''
+#     if morph == True:
+#         # morphology closed means dilating foreground pixels and then eroding them
+#         # kernel determines the thickness of the dilation/erosion 
+#         kernel = cv.getStructuringElement(cv.MORPH_RECT,(6,6))
+#         closed = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
+#         blurred = ndimage.gaussian_filter(closed, 2, mode='nearest')
         
-    elif morph == False: 
-        blurred = ndimage.gaussian_filter(img, 2, mode='nearest')
+#     elif morph == False: 
+#         blurred = ndimage.gaussian_filter(img, 2, mode='nearest')
     
-    if np.ndim(blurred) != 2:
-        blurred = cv.cvtColor(blurred, cv.COLOR_BGR2GRAY) 
+#     if np.ndim(blurred) != 2:
+#         blurred = cv.cvtColor(blurred, cv.COLOR_BGR2GRAY) 
     
-    # otsu thresholding picks the threshold values based on a normalized histogram
-    ret, thresh = cv.threshold(blurred, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU) 
-    contours, hierarchy = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-    return contours
+#     # otsu thresholding picks the threshold values based on a normalized histogram
+#     ret, thresh = cv.threshold(blurred, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU) 
+#     contours, hierarchy = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+#     return contours
 
 def findAreas(contours):
     '''
@@ -94,7 +115,17 @@ def findAreas(contours):
     for cnt in contours:
         area.append(cv.contourArea(cnt))
     return np.asarray(area)
-        
+
+def cntsOI(cnts, lower, upper):
+    '''
+    return indices of contours of interest 
+    '''
+    areas = findAreas(cnts)
+    smalltobig = np.argsort(areas)
+    
+    i = smalltobig[lower:upper]
+    
+    return i
 
 def extractROI(contour):
     """
@@ -197,14 +228,14 @@ def avgDev(actual, fit):
 #=============================MAIN========================================
 scale = 5.88 
 sourcePath = '//wp-oft-nas/HiWis/GM_Dawn_Zheng/Arvid/Magnesium Walls for Dawn/'
-inDir = sourcePath + 'As Built'
+inDir = sourcePath + 'Post Processed' 
 loi = []
 data = []
 acceptedFileTypes = ["png"] # add more as needed
 saveSummaries = True
 
 # threshing method, (127, 255) is a standard place to start
-manual_threshing = True 
+manual_threshing = False
 thresh_upper_bound = 255
 thresh_lower_bound = 127 
 
@@ -213,18 +244,17 @@ cnt_lower_bound = -5
 cnt_upper_bound = -2
 
 # column names in excel file are based on the number of ROI specified by indices above
-column_names = list(np.arange(cnt_lower_bound - cnt_upper_bound))
+column_names = np.arange(np.abs(cnt_lower_bound - cnt_upper_bound))
 
 # for every picture in your directory, to extract the contours for analysis 
-for sample in os.listdir(inDir): 
-    if( '.' in sample and sample.split('.')[-1] in acceptedFileTypes):
-        f = inDir + '/' + sample
-        loi.append(sample)
-        print('Processing ' + sample)
-        sampleNumber = sample[:-4]
+for i in os.listdir(inDir): 
+    if( '.' in i and i.split('.')[-1] in acceptedFileTypes):
+        f = inDir + '/' + i
+        loi.append(i)
+        print('Processing ' + i)
         
         # make output directory if it doesn't exist already 
-        outDir = sourcePath + ' ROI_Images/' + sampleNumber + '_output'
+        outDir = sourcePath + ' ROI_Images/' + i + '_output'
         if not os.path.exists(outDir):
             os.makedirs(outDir)
         
@@ -237,28 +267,28 @@ for sample in os.listdir(inDir):
         # copy img for summary img
         summary_image = img.copy() 
     
+        # different threshing methods 
+        if manual_threshing == True:
+            thresh = threshManual(img, thresh_lower_bound, thresh_upper_bound)
+        elif manual_threshing == False:
+            thresh = threshOtsu(img)
         
-        # try morphology first because higher success rate of 24/30
-        # no morphology has a 19/30 success rate 
-        cnts = findContour(img, True)
-        
-        # sorts areas from smallest to largest
-        # extracts contours based on indices specified above 
-        cntsOI = np.argsort(findAreas(cnts))[cnt_lower_bound : cnt_upper_bound] 
+        # try to morph first (19/30 success rate)
+        morph_img = morph(thresh)
+        cnts = findContour(morph_img) 
+        indices = cntsOI(cnts, cnt_lower_bound, cnt_upper_bound)
        
-        
         # checking contours, excluding morphology if contours are too short
-        if checkContour(cnts, cntsOI, img_height) == False:
-            cnts = findContour(img, False)
-            cntsOI = np.argsort(findAreas(cnts))[cnt_lower_bound : cnt_upper_bound] 
-        
+        if checkContour(cnts, indices, img_height) == False:
+            cnts = findContour(thresh)
+            indices = cntsOI(cnts, cnt_lower_bound, cnt_upper_bound)
         
         # extracting contours
         ROI_number = 0
-        for i in cntsOI:
-            x,y,w,h = cv.boundingRect(cnts[i])
+        for j in indices:
+            x,y,w,h = cv.boundingRect(cnts[j])
             ROI = img[y:y+h, x:x+w]
-            cv.imwrite('{}/{} ROI{}'.format(outDir, sampleNumber, ROI_number) + '.png', ROI)
+            cv.imwrite('{}/{} ROI{}'.format(outDir, i, ROI_number) + '.png', ROI)
             cv.rectangle(summary_image,(x,y),(x+w,y+h),(255,255,0),2) # also add label later on
             ROI_number += 1
        
@@ -271,9 +301,9 @@ for sample in os.listdir(inDir):
         
         #show and save extraction summary image
         if saveSummaries == True:
-            cv.imwrite(sumimgDir + '/' + sample, summary_image)
+            cv.imwrite(sumimgDir + '/' + i, summary_image)
         plt.imshow(summary_image)
-        plt.title(sample + ' ROI')
+        plt.title(i + ' ROI')
         plt.show()
         
         
@@ -315,10 +345,10 @@ for sample in os.listdir(inDir):
                     plt.show()
                 except: 
                     print('ISSUE WITH ' + ROI)
-                    
+                   
         data.append(allRoughness)
 
 # save to excel 
-df = pd.DataFrame(data=list(data), columns= column_names, index = loi)
-df.to_excel(sourcePath + 'Roughness.xlsx')
+df = pd.DataFrame(data=list(data), columns= list(column_names), index = loi)
+df.to_excel(sourcePath + 'Roughness_Thresh.xlsx')
 print('All Done!')
