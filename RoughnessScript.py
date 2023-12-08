@@ -77,34 +77,6 @@ def findContour(img):
     
     return contours 
 
-
-    
-    
-# def findContour(img, morph, manual):
-#     '''
-#     28/30 success rate if implemented correctly
-#     img: image array
-#     morph: True or False, indicates whether morphology closing is used 
-#     contours: image array of contours 
-#     '''
-#     if morph == True:
-#         # morphology closed means dilating foreground pixels and then eroding them
-#         # kernel determines the thickness of the dilation/erosion 
-#         kernel = cv.getStructuringElement(cv.MORPH_RECT,(6,6))
-#         closed = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
-#         blurred = ndimage.gaussian_filter(closed, 2, mode='nearest')
-        
-#     elif morph == False: 
-#         blurred = ndimage.gaussian_filter(img, 2, mode='nearest')
-    
-#     if np.ndim(blurred) != 2:
-#         blurred = cv.cvtColor(blurred, cv.COLOR_BGR2GRAY) 
-    
-#     # otsu thresholding picks the threshold values based on a normalized histogram
-#     ret, thresh = cv.threshold(blurred, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU) 
-#     contours, hierarchy = cv.findContours(thresh, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
-#     return contours
-
 def findAreas(contours):
     '''
     contours: image array with contours found 
