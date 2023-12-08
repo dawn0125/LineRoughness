@@ -40,7 +40,26 @@ import os
 import pandas as pd
 
 #===============================FUNCTIONS======================================
-def findContour(img, morph):
+def threshManual(img, lower, upper):
+    '''
+    thresh according to bins added manually 
+    '''
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    ret, thresh = cv.threshold(gray, lower, upper, cv.THRESH_BINARY)
+    return thresh
+    
+
+def threshOtsu(img):
+    '''
+    img: image array 
+    thresh: black and white image array 
+
+    '''
+    gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    ret, thresh = cv.threshold(gray, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    return thresh
+
+def findContour(img, morph, manual):
     '''
     28/30 success rate if implemented correctly
     img: image array
@@ -178,13 +197,23 @@ def avgDev(actual, fit):
 #=============================MAIN========================================
 scale = 5.88 
 sourcePath = '//wp-oft-nas/HiWis/GM_Dawn_Zheng/Arvid/Magnesium Walls for Dawn/'
-inDir = sourcePath + 'Post Processed'
+inDir = sourcePath + 'As Built'
 loi = []
 data = []
 acceptedFileTypes = ["png"] # add more as needed
 saveSummaries = True
-lower_bin = -5
-upper_bin = -2
+
+# threshing method, (127, 255) is a standard place to start
+manual_threshing = True 
+thresh_upper_bound = 255
+thresh_lower_bound = 127 
+
+# indices of contours to be extracted based on size 
+cnt_lower_bound = -5
+cnt_upper_bound = -2
+
+# column names in excel file are based on the number of ROI specified by indices above
+column_names = list(np.arange(cnt_lower_bound - cnt_upper_bound))
 
 # for every picture in your directory, to extract the contours for analysis 
 for sample in os.listdir(inDir): 
@@ -195,7 +224,7 @@ for sample in os.listdir(inDir):
         sampleNumber = sample[:-4]
         
         # make output directory if it doesn't exist already 
-        outDir = sourcePath + ' Output/' + sampleNumber + '_output'
+        outDir = sourcePath + ' ROI_Images/' + sampleNumber + '_output'
         if not os.path.exists(outDir):
             os.makedirs(outDir)
         
@@ -214,14 +243,14 @@ for sample in os.listdir(inDir):
         cnts = findContour(img, True)
         
         # sorts areas from smallest to largest
-        # extracts 3rd, 4th, and 5th largest contours
-        cntsOI = np.argsort(findAreas(cnts))[lower_bin:upper_bin] 
+        # extracts contours based on indices specified above 
+        cntsOI = np.argsort(findAreas(cnts))[cnt_lower_bound : cnt_upper_bound] 
        
         
         # checking contours, excluding morphology if contours are too short
         if checkContour(cnts, cntsOI, img_height) == False:
             cnts = findContour(img, False)
-            cntsOI = np.argsort(findAreas(cnts))[lower_bin:upper_bin] 
+            cntsOI = np.argsort(findAreas(cnts))[cnt_lower_bound : cnt_upper_bound] 
         
         
         # extracting contours
@@ -290,6 +319,6 @@ for sample in os.listdir(inDir):
         data.append(allRoughness)
 
 # save to excel 
-df = pd.DataFrame(data=list(data), columns=['0', '1', '2'], index = loi)
+df = pd.DataFrame(data=list(data), columns= column_names, index = loi)
 df.to_excel(sourcePath + 'Roughness.xlsx')
 print('All Done!')
