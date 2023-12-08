@@ -42,6 +42,9 @@ import pandas as pd
 #===============================FUNCTIONS======================================
 def threshManual(img, lower, upper):
     '''
+    img: image array 
+    lower: lower bound for thresh 
+    upper: upper bound for thresh 
     thresh according to bins added manually 
     '''
     img = ndimage.gaussian_filter(img, 2, mode='nearest')
@@ -63,7 +66,7 @@ def threshOtsu(img):
 
 def morph(img):
     '''
-    perform morphological operations to remove noise
+    perform morphological operations to remove noise, kernel chosen arbitrarily 
     '''
     kernel = cv.getStructuringElement(cv.MORPH_RECT,(6,6))
     closed = cv.morphologyEx(img, cv.MORPH_CLOSE, kernel)
@@ -71,6 +74,9 @@ def morph(img):
     return closed 
 
 def findContour(img):
+    '''
+    returns list of contours segmented from an image using opencv
+    '''
     if np.ndim(img) != 2:
         img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
     contours, hierarchy = cv.findContours(img, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
@@ -123,7 +129,11 @@ def findHeights(cnts, cntsOI):
 
 def filterHeight(cnts, ratio, height):
     '''
-    return list of tall contours 
+    cnts: list of contours 
+    ratio: ratio of height wanted 
+    height: height wanted 
+    
+    returns a list of tall contours 
     '''
     tall_cnts = []
     for cnt in cnts: 
@@ -135,6 +145,7 @@ def filterHeight(cnts, ratio, height):
 
 def orderMass(cnts):
     '''
+    cnts: list of contours 
     returns indices of contours sorted from left to right, based on center of mass 
     '''
     com = []
@@ -260,6 +271,11 @@ for i in os.listdir(inDir):
         morph_img = morph(thresh)
         cnts = findContour(morph_img) 
         cnts = filterHeight(cnts, height_scale, img_height)
+        
+        if len(cnts) < 4: 
+            cnts = findContour(thresh)
+            cnts = filterHeight(cnts, height_scale, img_height)
+            
         order = orderMass(cnts)
         indices = order[cnt_lower_bound : cnt_upper_bound]
         
@@ -270,7 +286,7 @@ for i in os.listdir(inDir):
             x,y,w,h = cv.boundingRect(cnts[j])
             ROI = img[y:y+h, x:x+w]
             cv.imwrite('{}/{} ROI{}'.format(outDir, i, ROI_number) + '.png', ROI)
-            cv.rectangle(summary_image,(x,y),(x+w,y+h),(255,255,0),2) # also add label later on
+            cv.rectangle(summary_image,(x,y),(x+w,y+h),(255,255,0),2) 
             ROI_number += 1
        
         
