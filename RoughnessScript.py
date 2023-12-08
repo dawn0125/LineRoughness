@@ -121,19 +121,6 @@ def findHeights(cnts, cntsOI):
         cnt_heights.append(h) # add heights to cnt heights 
     return cnt_heights
 
-# def checkContour(cnts, cntsOI, expected):
-#     '''
-#     every actual height must be at least 90% the expected height 
-
-#     '''
-#     cnt_heights = findHeights(cnts, cntsOI)
-#     for height in cnt_heights: 
-#         if 0.9 * expected <= height:
-#             continue
-#         else: 
-#             return False
-#     return True
-
 def filterHeight(cnts, ratio, height):
     '''
     return list of tall contours 
@@ -227,7 +214,8 @@ inDir = sourcePath + 'Post Processed'
 loi = []
 data = []
 acceptedFileTypes = ["png"] # add more as needed
-saveSummaries = True
+saveSummaries = False
+height_scale = 0.9 # ratio of the image height to accept contours 
 
 # threshing method, (127, 255) is a standard place to start
 manual_threshing = False
@@ -235,8 +223,8 @@ thresh_upper_bound = 255
 thresh_lower_bound = 127 
 
 # indices of contours to be extracted based on size 
-cnt_lower_bound = -5
-cnt_upper_bound = -2
+cnt_lower_bound = -4
+cnt_upper_bound = -1
 
 # column names in excel file are based on the number of ROI specified by indices above
 column_names = np.arange(np.abs(cnt_lower_bound - cnt_upper_bound))
@@ -271,96 +259,78 @@ for i in os.listdir(inDir):
         # try to morph first (19/30 success rate)
         morph_img = morph(thresh)
         cnts = findContour(morph_img) 
-        cnts = filterHeight(cnts, 0.9, img_height)
+        cnts = filterHeight(cnts, height_scale, img_height)
         order = orderMass(cnts)
-        order = order[-4:-1]
-        
-        for j in order:
-            cv.drawContours(summary_image, cnts[j], -1, (255, 0, 0), 5)
-            plt.imshow(summary_image)
-            plt.title(i + ' contour ' + str(j))
-            plt.show()
+        indices = order[cnt_lower_bound : cnt_upper_bound]
         
         
-        
-        
-#         indices = cntsOI(cnts, cnt_lower_bound, cnt_upper_bound)
-       
-#         # checking contours, excluding morphology if contours are too short
-#         if checkContour(cnts, indices, img_height) == False:
-#             cnts = findContour(thresh)
-#             indices = cntsOI(cnts, cnt_lower_bound, cnt_upper_bound)
-        
-#         if checkContour(cnts,indices, img_height) == False: 
-#             print("CAN'T FILTER " + i)
-#             break 
-        
-#         # extracting contours
-#         ROI_number = 0
-#         for j in indices:
-#             x,y,w,h = cv.boundingRect(cnts[j])
-#             ROI = img[y:y+h, x:x+w]
-#             cv.imwrite('{}/{} ROI{}'.format(outDir, i, ROI_number) + '.png', ROI)
-#             cv.rectangle(summary_image,(x,y),(x+w,y+h),(255,255,0),2) # also add label later on
-#             ROI_number += 1
+        # extracting contours
+        ROI_number = 0
+        for j in indices:
+            x,y,w,h = cv.boundingRect(cnts[j])
+            ROI = img[y:y+h, x:x+w]
+            cv.imwrite('{}/{} ROI{}'.format(outDir, i, ROI_number) + '.png', ROI)
+            cv.rectangle(summary_image,(x,y),(x+w,y+h),(255,255,0),2) # also add label later on
+            ROI_number += 1
        
         
-#         # make summary directory if it doesn't exist 
-#         sumimgDir = sourcePath + '/summary_imgs'
-#         if not os.path.exists(sumimgDir):
-#             os.makedirs(sumimgDir)
+        # make summary directory if it doesn't exist 
+        sumimgDir = sourcePath + '/summary_imgs'
+        if not os.path.exists(sumimgDir):
+            os.makedirs(sumimgDir)
         
         
-#         #show and save extraction summary image
-#         if saveSummaries == True:
-#             cv.imwrite(sumimgDir + '/' + i, summary_image)
-#         plt.imshow(summary_image)
-#         plt.title(i + ' ROI')
-#         plt.show()
+        #show and save extraction summary image
+        if saveSummaries == True:
+            cv.imwrite(sumimgDir + '/' + i, summary_image)
+        plt.imshow(summary_image)
+        plt.title(i + ' ROI')
+        plt.show()
         
         
-#         # begin roughness script   
-#         allRoughness = []
-#         for ROI in os.listdir(outDir):
-#             if( '.' in ROI and ROI.split('.')[-1] in acceptedFileTypes):
-#                 try: 
-#                     img = cv.imread(os.path.join(outDir, ROI), cv.IMREAD_GRAYSCALE) 
-#                     roughness_img = cv.imread(os.path.join(outDir, ROI))
-#                     edges = filterPores(img)
-#                     roughness = []
+        # begin roughness script   
+        allRoughness = []
+        for ROI in os.listdir(outDir):
+            if( '.' in ROI and ROI.split('.')[-1] in acceptedFileTypes):
+                try: 
+                    img = cv.imread(os.path.join(outDir, ROI), cv.IMREAD_GRAYSCALE) 
+                    roughness_img = cv.imread(os.path.join(outDir, ROI))
+                    edges = filterPores(img)
+                    roughness = []
                     
-#                     # treat each side separately (should loop 2x)
-#                     for side in splitEdges(edges):
-#                         # extract coordinates and fit
-#                         x, y = extractCoords(side)
-#                         xfit = fit(x, y)
+                    # treat each side separately (should loop 2x)
+                    for side in splitEdges(edges):
+                        # extract coordinates and fit
+                        x, y = extractCoords(side)
+                        xfit = fit(x, y)
                         
-#                         # append deviation to roughness array 
-#                         roughness.append(avgDev(x, xfit))
+                        # append deviation to roughness array 
+                        roughness.append(avgDev(x, xfit))
                         
-#                         # draw line on roughness image
-#                         start_point = (int(xfit[0]), int(y[0]))
-#                         end_point = (int(xfit[-1]), int(y[-1]))
-#                         cv.line(roughness_img, start_point, end_point, (255, 255, 0), 2)
+                        # draw line on roughness image
+                        start_point = (int(xfit[0]), int(y[0]))
+                        end_point = (int(xfit[-1]), int(y[-1]))
+                        cv.line(roughness_img, start_point, end_point, (255, 255, 0), 2)
                        
-#                     # calculate the average roughness
-#                     roughness = np.mean(roughness) * scale
+                    # calculate the average roughness
+                    roughness = np.mean(roughness) * scale
                     
-#                     # append to dataset 
-#                     allRoughness.append(str(roughness).replace('.', ','))
+                    # append to dataset 
+                    allRoughness.append(str(roughness).replace('.', ','))
                     
-#                     # show/save roughness image
-#                     if saveSummaries == True:
-#                         cv.imwrite(sumimgDir + '/Contour ' + ROI, roughness_img)
-#                     plt.imshow(roughness_img)
-#                     plt.title(ROI)
-#                     plt.show()
-#                 except: 
-#                     print('ISSUE WITH ' + ROI)
+                    # show/save roughness image
+                    if saveSummaries == True:
+                        cv.imwrite(sumimgDir + '/Contour ' + ROI, roughness_img)
+                    # plt.imshow(roughness_img)
+                    # plt.title(ROI)
+                    # plt.show()
+                except: 
+                    print('ISSUE WITH ' + ROI)
                    
-#         data.append(allRoughness)
+        data.append(allRoughness)
+        print(allRoughness, '\n')
 
-# # save to excel 
-# df = pd.DataFrame(data=list(data), columns= list(column_names), index = loi)
-# df.to_excel(sourcePath + 'Roughness_Thresh.xlsx')
-# print('All Done!')
+# save to excel 
+df = pd.DataFrame(data=list(data), columns= list(column_names), index = loi)
+df.to_excel(sourcePath + 'Roughness_Thresh.xlsx')
+print('All Done!')
