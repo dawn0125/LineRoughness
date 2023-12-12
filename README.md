@@ -18,7 +18,7 @@
 
 ### How to Use: ###
   1. Change image directory to the path with the folder of images 
-  2. set show_thresh, save_thresh, and show_contours to True/False accordinly
+  2. set show_thresh, save_thresh, and show_contours to True/False accordingly
   3. change thresh directory 
   4. set scale if it is different from the current input 
     
