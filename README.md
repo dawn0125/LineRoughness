@@ -12,7 +12,7 @@
   - pip install opencv-python
   - python -m pip install scipy
  
-- for conda:
+- for conda (on anaconda + spyder):
   - conda install -c conda-forge
   - conda install scipy
 
