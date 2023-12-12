@@ -17,10 +17,9 @@
   - conda install scipy
 
 ### How to Use: ###
-  1. Change image directory to the path with the folder of images 
-  2. set show_thresh, save_thresh, and show_contours to True/False accordingly
-  3. change thresh directory 
-  4. set scale if it is different from the current input 
+  1. Change sourcePath to the directory where all your folders will be saved 
+  2. Change the inDir to the folder of your images 
+  3. Set scale if it is different from current number 
     
 ### Tips: ### 
 - For manual thresholding, you can use ImageJ or FIJI prior to estimate threshold values:
