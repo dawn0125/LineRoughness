@@ -16,7 +16,7 @@
   - conda install -c conda-forge
   - conda install scipy
 
-### How to USe: ###
+### How to Use: ###
   1. Change image directory to the path with the folder of images 
   2. set show_thresh, save_thresh, and show_contours to True/False accordinly
   3. change thresh directory 
