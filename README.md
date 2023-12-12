@@ -24,5 +24,6 @@
     
 ### Tips: ### 
 - For manual thresholding, you can use ImageJ or FIJI prior to estimate threshold values:
+  - download FIJI from: https://imagej.net/software/fiji/downloads
   - From menu at the top, click Image and change "Type" to 8-bit
   - Right under "Type", click "Adjust" and then click threshold 
